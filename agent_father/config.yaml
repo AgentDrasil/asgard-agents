@@ -1,0 +1,11 @@
+id: agent_father
+name: Agent Father
+description: The agent creates other agents.
+cli:
+- cli: agy
+  model: Gemini 3.5 Flash (Low)
+run_dirs:
+- /home/user/asgard/agents
+mount_dirs:
+  readonly: []
+  readwrite: []
