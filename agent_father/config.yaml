@@ -1,9 +1,10 @@
 id: agent_father
 name: Agent Father
 description: The agent creates other agents.
+icon: noto:person-beard
 cli:
 - cli: agy
-  model: Gemini 3.5 Flash (Low)
+  model: gemini-3.6-flash-low
 run_dirs:
 - /home/user/asgard/agents
 mount_dirs:

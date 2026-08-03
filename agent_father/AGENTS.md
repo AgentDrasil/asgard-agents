@@ -27,13 +27,16 @@ id: <agent_id>
 # Human-readable name of the agent
 name: <Agent Name>
 
+# Icon from iconify
+icon: fluent-color:bot-24
+
 # Description of the agent's responsibilities
 description: <Description of the agent's responsibilities>
 
 # CLI targets that can be used (ordered by preference to support quota-based fallbacks)
 cli:
 - cli: agy
-  model: Gemini 3.5 Flash (Low)
+  model: gemini-3.6-flash-low
 
 # Directories in which agents are allowed to start. These are mounted as readwrite.
 run_dirs:
