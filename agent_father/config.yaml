@@ -2,6 +2,7 @@ id: agent_father
 name: Agent Father
 description: The agent creates other agents.
 icon: noto:person-beard
+main_agent: true
 cli:
 - cli: agy
   model: gemini-3.6-flash-low

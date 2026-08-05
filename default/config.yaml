@@ -2,6 +2,7 @@ id: default
 name: Default Agent
 description: Default agent using /tmp as run directory.
 icon: fluent-color:bot-sparkle-20
+main_agent: true
 cli:
   - cli: agy
     model: gemini-3.6-flash-low

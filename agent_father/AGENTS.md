@@ -30,6 +30,8 @@ name: <Agent Name>
 # Icon from iconify
 icon: fluent-color:bot-24
 
+main_agent: true
+
 # Description of the agent's responsibilities
 description: <Description of the agent's responsibilities>
 

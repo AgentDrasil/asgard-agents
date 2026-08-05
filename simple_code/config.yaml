@@ -8,6 +8,7 @@ name: simple_code
 description: Agent designed for simple tasks using built-in plan and code flow.
 
 icon: glyphs-poly:code
+main_agent: true
 
 # CLI targets that can be used (ordered by preference to support quota-based fallbacks)
 cli:
