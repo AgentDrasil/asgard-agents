@@ -1,3 +1,4 @@
+type: agent
 id: agent_father
 name: Agent Father
 description: The agent creates other agents.

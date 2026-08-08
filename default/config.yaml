@@ -1,3 +1,4 @@
+type: agent
 id: default
 name: Default Agent
 description: Default agent using /tmp as run directory.
@@ -6,8 +7,8 @@ main_agent: true
 cli:
   - cli: agy
     model: gemini-3.6-flash-low
-  # - cli: opencode
-  #   model: zai-coding-plan/glm-4.7
+  - cli: opencode
+    model: zai-coding-plan/glm-5.2
 run_dirs:
 - /tmp
 mount_dirs:

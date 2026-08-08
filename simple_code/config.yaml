@@ -1,25 +1,22 @@
-# Unique identifier for the agent. Must match regex: ^[a-z0-9-_]+$
+type: agent
 id: simple_code
 
-# Human-readable name of the agent
-name: simple_code
+name: Simple Code
 
-# Description of the agent's responsibilities
 description: Agent designed for simple tasks using built-in plan and code flow.
 
 icon: glyphs-poly:code
 main_agent: true
 
-# CLI targets that can be used (ordered by preference to support quota-based fallbacks)
 cli:
-- cli: agy
-  model: gemini-3.6-flash-low
+  - cli: agy
+    model: gemini-3.6-flash-low
+  - cli: opencode
+    model: zai-coding-plan/glm-5.2
 
-# Directories in which agents are allowed to start. These are mounted as readwrite.
 run_dirs:
-- /home/user/src
+  - /home/user/src
 
-# Additional directories to mount into the sandbox
 mount_dirs:
   readonly: []
   readwrite: []
