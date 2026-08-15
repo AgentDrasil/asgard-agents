@@ -10,7 +10,7 @@ main_agent: true
 
 cli:
   - cli: agy
-    model: gemini-3.6-flash-low
+    model: gemini-3.7-flash-low
   - cli: opencode
     model: zai-coding-plan/glm-5.2
 

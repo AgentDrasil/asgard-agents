@@ -6,7 +6,7 @@ icon: noto:person-beard
 main_agent: true
 cli:
 - cli: agy
-  model: gemini-3.6-flash-low
+  model: gemini-3.7-flash-low
 run_dirs:
 - /home/user/asgard/agents
 mount_dirs:
