@@ -1,0 +1,10 @@
+id: intend
+name: Intent Analyst
+description: Requirements specialist that extracts structured intent, goals, constraints and non-goals from user requests.
+type: agent
+main_agent: false
+cli:
+  - cli: agy
+    model: gemini-3.7-flash-high
+
+icon: material-symbols-light:lightbulb-outline

@@ -1,0 +1,10 @@
+id: code-reviewer
+name: Code Reviewer
+description: Senior code auditor specialist responsible for verifying step commits against 5 core engineering dimensions.
+type: agent
+main_agent: false
+cli:
+  - cli: opencode
+    model: zai-coding-plan/glm-5.3/high
+
+icon: codicon:code-review

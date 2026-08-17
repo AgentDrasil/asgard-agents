@@ -86,8 +86,8 @@ nodes:
   - id: coding_agent
     type: agent
     agent_id: coder
+    entry: true # REQUIRED on the node(s) that receive the raw user input
     session_policy: fresh # "fresh" (clean CLI session) | "inherit" (resumes session)
-    prompt: "Optional prompt template override"
     model: "gemini-3.6-flash-medium" # Optional model override
 
   # Human Approval Node: suspends execution for user decision
@@ -96,7 +96,7 @@ nodes:
     depends:
       - node: code_review_agent
     prompt: "Please review findings in ${tmp_dir}/code_review.md."
-    options: ["Next Step", "Fix Required", "Pass & Push"]
+    options: ["Next Step", "Fix Required"]
     output_file: "review_user_decision.txt"
 
   # Command Node: runs sandboxed shell command
@@ -113,6 +113,13 @@ nodes:
     system_prompt: "You are a concise summarizer."
     prompt: "Summarize: ${input}"
 ```
+
+#### Agent Node Prompt Semantics
+- Agent nodes take NO `prompt` field (validation rejects it). Each child agent's `AGENTS.md` holds all of its instructions.
+- Each agent must be single-responsibility: one agent per node role, never reuse one agent across multiple nodes.
+- The node marked `entry: true` receives the raw user input as its prompt. Every workflow with agent nodes must mark at least one entry node (multiple are allowed for parallel entry points). All other agent nodes are kicked off with a directive; their inputs are files produced by earlier nodes (referenced from their `AGENTS.md`), not the user input.
+- Nodes with `session_policy: inherit` re-entering after a loop (e.g. after a `Request Changes` decision) receive a follow-up directive that reminds them to re-read referenced files.
+- In child agents' `AGENTS.md`, write `/tmp/...` for scratch file paths (the session tmp directory is bind-mounted at `/tmp` inside the sandbox).
 
 #### Workflow Control Flow & Loop Mechanics:
 - **Dependencies (`depends:`)**:

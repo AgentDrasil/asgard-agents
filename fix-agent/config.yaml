@@ -1,0 +1,10 @@
+id: fix-agent
+name: Fix Agent
+description: Bug fix and code review resolution specialist responsible for fixing review findings and amending commits.
+type: agent
+main_agent: false
+cli:
+  - cli: agy
+    model: gemini-3.7-flash-low
+
+icon: mdi:auto-fix

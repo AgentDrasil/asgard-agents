@@ -1,0 +1,11 @@
+id: dev-workflow
+name: Dev Workflow
+description: End-to-end development workflow orchestrating planning, coding, reviewing, committing, and quality gates.
+type: workflow
+icon: vscode-icons:file-type-pipeline
+run_dirs:
+  - /home/user/src
+
+mount_dirs:
+  readonly: []
+  readwrite: []

@@ -1,0 +1,118 @@
+name: dev-workflow
+
+nodes:
+  # =========================================================
+  # Phase 0: Justfile Quality Gate Pre-check
+  # =========================================================
+  - id: check_justfile
+    type: command
+    sandbox: true
+    working_dir: "${run_dir}"
+    command: "just --summary | grep -w build && just --summary | grep -w test && just --summary | grep -w fmt && just --summary | grep -w lint"
+
+  # Triggered only when check_justfile fails (exit_code != 0)
+  - id: init_justfile_agent
+    type: agent
+    depends:
+      - node: check_justfile
+        when: "nodes.check_justfile.exit_code != 0"
+    agent_id: justfile-init
+    session_policy: fresh
+
+  # =========================================================
+  # Phase 1: Intent Analysis (Intend Phase)
+  # =========================================================
+  - id: intend_agent
+    type: agent
+    depends:
+      - node: check_justfile
+      - node: init_justfile_agent
+    join: always
+    agent_id: intend
+    session_policy: fresh
+    entry: true
+
+  # =========================================================
+  # Phase 2: Planning & Review Loop (Plan Loop)
+  # =========================================================
+  - id: plan_agent
+    type: agent
+    depends:
+      - node: intend_agent
+      - node: plan_approval
+        when: "nodes.plan_approval.output != 'Approve'"
+    join: always
+    agent_id: planner
+    session_policy: inherit
+
+  - id: plan_review_agent
+    type: agent
+    depends:
+      - node: plan_agent
+    agent_id: plan-reviewer
+    session_policy: fresh
+
+  - id: plan_approval
+    type: human
+    depends:
+      - node: plan_review_agent
+    prompt: "Please review Plan (${tmp_dir}/plan/plan.md) and Review Feedback (${tmp_dir}/plan/review_feedback.md). Choose Approve or Request Changes."
+    options: ["Approve", "Request Changes"]
+    output_file: "plan_user_decision.txt"
+
+  # =========================================================
+  # Phase 3: Code Implementation (Coding Phase - Per-Step Loop)
+  # =========================================================
+  - id: check_pending_steps
+    type: command
+    sandbox: false
+    command: "grep -q 'status: pending' ${tmp_dir}/plan/todo.yaml"
+    depends:
+      - node: review_approval
+        when: "nodes.review_approval.output == 'Next Step'"
+
+  - id: coding_agent
+    type: agent
+    depends:
+      - node: plan_approval
+        when: "nodes.plan_approval.output == 'Approve'"
+      - node: check_pending_steps
+        when: "nodes.check_pending_steps.exit_code == 0"
+    join: always
+    agent_id: coder
+    session_policy: fresh
+
+  # =========================================================
+  # Phase 4: Commit, Code Review & Fix Loop (Review & Fix Loop)
+  # =========================================================
+  - id: commit_agent
+    type: agent
+    depends:
+      - node: coding_agent
+    agent_id: commit-agent
+    session_policy: fresh
+
+  - id: code_review_agent
+    type: agent
+    depends:
+      - node: commit_agent
+      - node: fix_agent
+    join: always
+    agent_id: code-reviewer
+    session_policy: fresh
+
+  - id: review_approval
+    type: human
+    depends:
+      - node: code_review_agent
+    prompt: "Please review Code Review Report (${tmp_dir}/code_review.md). Choose 'Next Step' to proceed with next task, or 'Fix Required' to fix current step."
+    options: ["Next Step", "Fix Required"]
+    output_file: "review_user_decision.txt"
+
+  - id: fix_agent
+    type: agent
+    depends:
+      - node: review_approval
+        when: "nodes.review_approval.output != 'Next Step'"
+    agent_id: fix-agent
+    session_policy: fresh

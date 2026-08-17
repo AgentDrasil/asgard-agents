@@ -1,0 +1,833 @@
+/* ==========================================================================
+   Design System & Theme Variables
+   ========================================================================== */
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+/* Dark Theme (Default) */
+html[data-theme="dark"] {
+  --bg-app: #0d1117;
+  --bg-surface: #161b22;
+  --bg-surface-hover: #1f242c;
+  --bg-surface-active: #282e38;
+  --bg-panel: #0d1117;
+  --bg-editor: #090d13;
+  --bg-code: #161b22;
+  --bg-modal: #161b22;
+  --bg-diagram: #12161d;
+  --bg-diagram-grid: radial-gradient(circle, #30363d 1px, transparent 1px);
+  
+  --border-subtle: #21262d;
+  --border-muted: #30363d;
+  --border-active: #58a6ff;
+  
+  --text-primary: #f0f6fc;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --text-link: #58a6ff;
+  
+  --accent-primary: #1f6feb;
+  --accent-primary-hover: #388bfd;
+  --accent-text: #ffffff;
+
+  --badge-bg: #21262d;
+  --badge-text: #8b949e;
+  
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.6);
+  --shadow-diagram: 0 4px 20px rgba(0, 0, 0, 0.35);
+
+  --toolbar-bg: rgba(22, 27, 34, 0.85);
+  --toolbar-border: rgba(48, 54, 61, 0.8);
+}
+
+/* Light Theme */
+html[data-theme="light"] {
+  --bg-app: #f6f8fa;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f3f4f6;
+  --bg-surface-active: #e5e7eb;
+  --bg-panel: #ffffff;
+  --bg-editor: #ffffff;
+  --bg-code: #f6f8fa;
+  --bg-modal: #ffffff;
+  --bg-diagram: #f8fafc;
+  --bg-diagram-grid: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+  
+  --border-subtle: #e1e4e8;
+  --border-muted: #d0d7de;
+  --border-active: #0969da;
+  
+  --text-primary: #1f2328;
+  --text-secondary: #57606a;
+  --text-muted: #8c959f;
+  --text-link: #0969da;
+  
+  --accent-primary: #0969da;
+  --accent-primary-hover: #218bff;
+  --accent-text: #ffffff;
+
+  --badge-bg: #eaeef2;
+  --badge-text: #57606a;
+  
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.12);
+  --shadow-diagram: 0 4px 16px rgba(0, 0, 0, 0.06);
+
+  --toolbar-bg: rgba(255, 255, 255, 0.88);
+  --toolbar-border: rgba(208, 215, 222, 0.8);
+}
+
+/* ==========================================================================
+   Base & Reset
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, html {
+  height: 100%;
+  font-family: var(--font-sans);
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  line-height: 1.5;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* ==========================================================================
+   App Layout
+   ========================================================================== */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   Navbar
+   ========================================================================== */
+.navbar {
+  height: 54px;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  gap: 12px;
+  user-select: none;
+  z-index: 20;
+}
+
+.nav-left, .nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.brand-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--accent-primary);
+}
+
+.divider-v {
+  width: 1px;
+  height: 22px;
+  background-color: var(--border-muted);
+}
+
+/* Buttons & Inputs */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-muted);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background-color: var(--bg-surface-hover);
+  border-color: var(--border-active);
+}
+
+.btn:active {
+  background-color: var(--bg-surface-active);
+}
+
+.btn-secondary {
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
+}
+
+.btn-secondary:hover {
+  color: var(--text-primary);
+}
+
+.btn-icon-only {
+  width: 32px;
+  padding: 0;
+}
+
+.btn-group {
+  display: inline-flex;
+  background-color: var(--bg-editor);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.btn-group .btn-icon {
+  height: 26px;
+  padding: 0 8px;
+  font-size: 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 4px;
+}
+
+.btn-group .btn-icon:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-surface-hover);
+}
+
+.btn-group .btn-icon.active {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.select-input {
+  cursor: pointer;
+  padding-right: 28px;
+  background-position: right 8px center;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+}
+
+/* Theme switch button */
+.theme-btn .theme-icon {
+  display: inline-flex;
+}
+
+html[data-theme="dark"] .light-icon { display: inline-flex; }
+html[data-theme="dark"] .dark-icon { display: none; }
+html[data-theme="light"] .light-icon { display: none; }
+html[data-theme="light"] .dark-icon { display: inline-flex; }
+
+/* ==========================================================================
+   Workspace & Panes
+   ========================================================================== */
+.workspace {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.editor-pane {
+  flex: 1;
+  min-width: 260px;
+  background-color: var(--bg-editor);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.preview-pane {
+  flex: 1.2;
+  min-width: 320px;
+  background-color: var(--bg-panel);
+}
+
+/* Workspace layout modes */
+.workspace.mode-editor .editor-pane {
+  flex: 1 !important;
+  width: 100% !important;
+}
+.workspace.mode-editor .preview-pane,
+.workspace.mode-editor .pane-resizer {
+  display: none;
+}
+
+.workspace.mode-preview .preview-pane {
+  flex: 1 !important;
+  width: 100% !important;
+}
+.workspace.mode-preview .editor-pane,
+.workspace.mode-preview .pane-resizer {
+  display: none;
+}
+
+/* Pane Headers */
+.pane-header {
+  height: 38px;
+  padding: 0 16px;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+}
+
+.pane-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.pane-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot-separator {
+  color: var(--border-muted);
+}
+
+.pane-resizer {
+  width: 6px;
+  cursor: col-resize;
+  background-color: transparent;
+  position: relative;
+  z-index: 10;
+  transition: background-color var(--transition-fast);
+}
+
+.pane-resizer:hover, .pane-resizer.resizing {
+  background-color: var(--accent-primary);
+}
+
+/* ==========================================================================
+   Editor
+   ========================================================================== */
+.editor-container {
+  flex: 1;
+  height: calc(100% - 38px);
+  position: relative;
+}
+
+#markdownInput {
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  border: none;
+  outline: none;
+  resize: none;
+  background-color: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  tab-size: 2;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* ==========================================================================
+   Preview & Markdown Content
+   ========================================================================== */
+.preview-scroll-container {
+  flex: 1;
+  height: calc(100% - 38px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px 32px;
+  scroll-behavior: smooth;
+}
+
+.markdown-body {
+  max-width: 900px;
+  margin: 0 auto;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  margin-top: 24px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.markdown-body h1 {
+  font-size: 24px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.markdown-body h2 {
+  font-size: 19px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.markdown-body h3 { font-size: 16px; }
+.markdown-body h4 { font-size: 14.5px; }
+
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol {
+  margin-bottom: 14px;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 24px;
+}
+
+.markdown-body li {
+  margin-bottom: 4px;
+}
+
+.markdown-body blockquote {
+  border-left: 3.5px solid var(--accent-primary);
+  padding: 6px 16px;
+  color: var(--text-secondary);
+  background-color: var(--bg-surface);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin-bottom: 16px;
+}
+
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  font-size: 13.5px;
+}
+
+.markdown-body th,
+.markdown-body td {
+  padding: 8px 12px;
+  border: 1px solid var(--border-muted);
+}
+
+.markdown-body th {
+  background-color: var(--bg-surface);
+  font-weight: 600;
+  text-align: left;
+}
+
+.markdown-body tr:nth-child(even) td {
+  background-color: var(--bg-code);
+}
+
+.markdown-body hr {
+  height: 1px;
+  border: none;
+  background-color: var(--border-subtle);
+  margin: 24px 0;
+}
+
+/* Regular Code blocks */
+.markdown-body code:not(pre code) {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  background-color: var(--bg-code);
+  color: var(--text-link);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+}
+
+.markdown-body pre {
+  background-color: var(--bg-code);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  overflow-x: auto;
+  margin-bottom: 18px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+/* ==========================================================================
+   Mermaid Diagram Card & Interactive Panzoom Container
+   ========================================================================== */
+.mermaid-diagram-card {
+  position: relative;
+  background-color: var(--bg-diagram);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-lg);
+  margin: 20px 0;
+  overflow: hidden;
+  box-shadow: var(--shadow-diagram);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.mermaid-diagram-card:hover {
+  border-color: var(--border-active);
+}
+
+/* Floating Diagram Toolbar */
+.diagram-toolbar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--toolbar-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--toolbar-border);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  opacity: 0.35;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.mermaid-diagram-card:hover .diagram-toolbar {
+  opacity: 1;
+}
+
+.btn-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-tool:hover {
+  background-color: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.btn-tool.btn-active {
+  background-color: var(--accent-primary);
+  color: var(--accent-text);
+}
+
+/* Card Diagram Canvas */
+.diagram-viewport {
+  width: 100%;
+  min-height: 220px;
+  max-height: 520px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  background-image: var(--bg-diagram-grid);
+  background-size: 20px 20px;
+}
+
+.diagram-viewport:active {
+  cursor: grabbing;
+}
+
+.diagram-canvas {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  user-select: none;
+}
+
+.diagram-canvas svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.05s ease-out;
+}
+
+/* Diagram Error State */
+.mermaid-error {
+  padding: 16px;
+  background-color: rgba(248, 81, 73, 0.1);
+  border: 1px solid rgba(248, 81, 73, 0.4);
+  border-radius: var(--radius-md);
+  color: #f85149;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  margin: 16px 0;
+}
+
+/* ==========================================================================
+   Fullscreen Modal
+   ========================================================================== */
+.diagram-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  display: flex;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-normal);
+}
+
+.diagram-modal.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  position: relative;
+  width: 95vw;
+  height: 94vh;
+  margin: auto;
+  background-color: var(--bg-modal);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  z-index: 2;
+}
+
+.modal-header {
+  height: 52px;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+}
+
+.modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.modal-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modal-controls .btn-tool {
+  background-color: var(--bg-code);
+  border: 1px solid var(--border-subtle);
+  height: 32px;
+  padding: 0 10px;
+}
+
+.modal-controls .btn-tool:hover {
+  border-color: var(--border-active);
+  background-color: var(--bg-surface-hover);
+}
+
+.btn-close {
+  color: #f85149 !important;
+}
+
+.modal-viewport {
+  flex: 1;
+  width: 100%;
+  height: calc(100% - 52px);
+  overflow: hidden;
+  position: relative;
+  cursor: grab;
+  background-color: var(--bg-diagram);
+  background-image: var(--bg-diagram-grid);
+  background-size: 24px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-viewport:active {
+  cursor: grabbing;
+}
+
+#modalPanzoomTarget {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#modalPanzoomTarget svg {
+  max-width: 90%;
+  max-height: 90%;
+}
+
+.panzoom-hint {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--toolbar-bg);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--toolbar-border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  pointer-events: none;
+  user-select: none;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ==========================================================================
+   Toast Notification
+   ========================================================================== */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-muted);
+  box-shadow: var(--shadow-md);
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 2000;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: all var(--transition-fast);
+  pointer-events: none;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ==========================================================================
+   Responsive Adaptations
+   ========================================================================== */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 10px;
+  }
+  
+  .brand-title {
+    display: none;
+  }
+
+  .pane-resizer {
+    display: none;
+  }
+
+  .workspace {
+    flex-direction: column;
+  }
+
+  .editor-pane, .preview-pane {
+    width: 100% !important;
+    flex: 1;
+  }
+
+  .preview-scroll-container {
+    padding: 16px;
+  }
+
+  .modal-content {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  }
+}

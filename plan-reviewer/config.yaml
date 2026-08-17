@@ -1,0 +1,10 @@
+id: plan-reviewer
+name: Plan Reviewer
+description: Technical architecture and implementation plan auditor specialist.
+type: agent
+main_agent: false
+cli:
+  - cli: opencode
+    model: zai-coding-plan/glm-5.3/high
+
+icon: material-symbols-light:checklist

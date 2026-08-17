@@ -1,0 +1,10 @@
+id: justfile-init
+name: Justfile Init Agent
+description: Project quality gate specialist that bootstraps the Justfile with build, test, fmt and lint recipes.
+type: agent
+main_agent: false
+cli:
+  - cli: agy
+    model: gemini-3.7-flash-high
+
+icon: material-symbols-light:deployed-code-outline

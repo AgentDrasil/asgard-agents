@@ -1,0 +1,10 @@
+id: commit-agent
+name: Commit Agent
+description: Git Automation Specialist responsible for analyzing diffs, writing Conventional Commits messages, and performing git commit.
+type: agent
+main_agent: false
+cli:
+  - cli: agy
+    model: gemini-3.7-flash-low
+
+icon: material-icon-theme:git

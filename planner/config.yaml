@@ -1,0 +1,10 @@
+id: planner
+name: Planner Agent
+description: Lead Architect responsible for architecture planning and per-commit task decomposition.
+type: agent
+main_agent: false
+cli:
+  - cli: agy
+    model: gemini-3.7-flash-high
+
+icon: material-symbols-light:design-services-outline
