@@ -1,4 +1,28 @@
 name: dev-workflow
+max_node_executions: 500  # override the default 100 global node execution cap
+
+loops:
+  # Outer development loop: iterates over every step in todo.yaml
+  - id: step_loop
+    nodes:
+      - coding_agent
+      - commit_agent
+      - code_review_agent
+      - check_review_verdict
+      - fix_agent
+      - check_pending_steps
+      - mark_step_skipped
+    max_iterations: 50
+
+  # Inner self-healing loop: code-review <-> fix-agent per step
+  - id: fix_loop
+    parent: step_loop
+    nodes:
+      - code_review_agent
+      - check_review_verdict
+      - fix_agent
+    max_iterations: 5
+    on_exhausted: fix_fallback
 
 nodes:
   # =========================================================
@@ -9,8 +33,8 @@ nodes:
     sandbox: true
     working_dir: "${run_dir}"
     command: "just --summary | grep -w build && just --summary | grep -w test && just --summary | grep -w fmt && just --summary | grep -w lint"
+    allowed_exit_codes: [0, 1]  # 1: justfile incomplete (recoverable by init agent); >=2: tool missing
 
-  # Triggered only when check_justfile fails (exit_code != 0)
   - id: init_justfile_agent
     type: agent
     depends:
@@ -61,16 +85,8 @@ nodes:
     output_file: "plan_user_decision.txt"
 
   # =========================================================
-  # Phase 3: Code Implementation (Coding Phase - Per-Step Loop)
+  # Phase 3 & 4: Per-Step Dev & Self-Healing Review Loop
   # =========================================================
-  - id: check_pending_steps
-    type: command
-    sandbox: false
-    command: "grep -q 'status: pending' ${tmp_dir}/plan/todo.yaml"
-    depends:
-      - node: review_approval
-        when: "nodes.review_approval.output == 'Next Step'"
-
   - id: coding_agent
     type: agent
     depends:
@@ -78,13 +94,11 @@ nodes:
         when: "nodes.plan_approval.output == 'Approve'"
       - node: check_pending_steps
         when: "nodes.check_pending_steps.exit_code == 0"
+        counts_loop: step_loop  # advancing to a new step: step_loop++ and reset fix_loop
     join: always
     agent_id: coder
     session_policy: fresh
 
-  # =========================================================
-  # Phase 4: Commit, Code Review & Fix Loop (Review & Fix Loop)
-  # =========================================================
   - id: commit_agent
     type: agent
     depends:
@@ -101,18 +115,85 @@ nodes:
     agent_id: code-reviewer
     session_policy: fresh
 
-  - id: review_approval
-    type: human
+  - id: check_review_verdict
+    type: command
+    sandbox: false
+    command: >
+      if grep -qx 'FIX_REQUIRED' ${tmp_dir}/review_verdict.txt; then exit 0;
+      elif grep -qx 'PASS' ${tmp_dir}/review_verdict.txt; then exit 1;
+      else exit 2; fi
+    allowed_exit_codes: [0, 1]  # 0: FIX_REQUIRED, 1: PASS, 2: verdict file missing/corrupt (fail-closed)
     depends:
       - node: code_review_agent
-    prompt: "Please review Code Review Report (${tmp_dir}/code_review.md). Choose 'Next Step' to proceed with next task, or 'Fix Required' to fix current step."
-    options: ["Next Step", "Fix Required"]
-    output_file: "review_user_decision.txt"
 
   - id: fix_agent
     type: agent
     depends:
-      - node: review_approval
-        when: "nodes.review_approval.output != 'Next Step'"
+      - node: check_review_verdict
+        when: "nodes.check_review_verdict.exit_code == 0"
+        counts_loop: fix_loop  # each fix attempt consumes one fix_loop iteration
+      - node: fix_fallback
+        when: "nodes.fix_fallback.output == 'Retry (reset counter)'"
+        resets_loop: fix_loop  # human retry: reset fix_loop and re-enter
+    join: always
     agent_id: fix-agent
     session_policy: fresh
+
+  - id: check_pending_steps
+    type: command
+    sandbox: false
+    command: "grep -q 'status: pending' ${tmp_dir}/plan/todo.yaml"
+    allowed_exit_codes: [0, 1]  # 0: pending steps remain, 1: all steps done
+    depends:
+      - node: check_review_verdict
+        when: "nodes.check_review_verdict.exit_code == 1"
+      - node: mark_step_skipped
+        when: "nodes.mark_step_skipped.exit_code == 0"
+    join: always
+
+  # =========================================================
+  # Fix Loop Exhausted Fallback (Human)
+  # =========================================================
+  - id: fix_fallback
+    type: human
+    prompt: "Auto-fix exhausted after 5 attempts for the current step. Please review Code Review Report (${tmp_dir}/code_review.md) and Fix Attempts Log (${tmp_dir}/plan/fix_attempts.md)."
+    options: ["Retry (reset counter)", "Skip This Step", "Abort Workflow"]
+    output_file: "fix_fallback_decision.txt"
+
+  - id: mark_step_skipped
+    type: command
+    sandbox: false
+    command: "sed -i '0,/status: in_review/s//status: skipped (known-broken)/' ${tmp_dir}/plan/todo.yaml && rm -f ${tmp_dir}/review_verdict.txt"
+    allowed_exit_codes: [0]
+    depends:
+      - node: fix_fallback
+        when: "nodes.fix_fallback.output == 'Skip This Step'"
+
+  # =========================================================
+  # Phase 5: Minor Issues Cleanup & Final Acceptance
+  # =========================================================
+  - id: final_cleaner
+    type: agent
+    depends:
+      - node: check_pending_steps
+        when: "nodes.check_pending_steps.exit_code == 1"
+      - node: final_approval
+        when: "nodes.final_approval.output == 'Request Changes'"
+    join: always
+    agent_id: final-cleaner
+    session_policy: fresh
+
+  - id: final_commit
+    type: agent
+    depends:
+      - node: final_cleaner
+    agent_id: commit-agent
+    session_policy: fresh
+
+  - id: final_approval
+    type: human
+    depends:
+      - node: final_commit
+    prompt: "All steps completed and minor issues cleaned. Please review Final Report (${tmp_dir}/final_review.md)."
+    options: ["Accept & Deliver", "Request Changes"]
+    output_file: "final_decision.txt"
