@@ -80,6 +80,16 @@ The workflow directory (e.g. `agents/<workflow-id>/`) must contain:
 ```yaml
 name: <workflow-name>
 tmp_dir: "tmp/${session_id}" # Optional, defaults to tmp/${session_id}
+max_node_executions: 500 # Optional global per-node execution cap (default 100)
+
+# Optional declarative loop scopes: per-loop circuit breakers over flat DAG
+# back edges. Declare one entry per loop; nest via `parent`.
+loops:
+  - id: fix_loop                # unique loop id
+    parent: step_loop           # optional parent loop id; child nodes must be a subset of parent nodes
+    nodes: [review, verdict, fixer] # all member nodes of the loop scope
+    max_iterations: 5           # iteration quota (0 = unlimited)
+    on_exhausted: fix_fallback  # node activated when the quota is exhausted (must live OUTSIDE this loop)
 
 nodes:
   # Agent Node: invokes a CLI child agent
@@ -106,6 +116,19 @@ nodes:
     working_dir: "${run_dir}"
     command: "just --summary"
     output_file: "summary.txt"
+    allowed_exit_codes: [0, 1] # command nodes only: whitelisted non-zero exits settle SUCCEEDED; the real exit code is always preserved for `when` routing
+
+  # Loop counting / resetting edges
+  - id: fixer
+    type: agent
+    agent_id: fix-agent
+    depends:
+      - node: verdict
+        when: "nodes.verdict.exit_code == 0"
+        counts_loop: fix_loop  # edge firing increments fix_loop (and resets its descendant loops); on exhaustion the re-entry is suppressed and on_exhausted activates
+      - node: fix_fallback
+        when: "nodes.fix_fallback.output == 'Retry (reset counter)'"
+        resets_loop: fix_loop # edge firing zeroes fix_loop (and descendants), re-admitting the target
 
   # LLM Node: lightweight text generation
   - id: summarize
@@ -127,8 +150,19 @@ nodes:
   - Conditional branch / loop edge: `depends: [{node: review_approval, when: "nodes.review_approval.output == 'Fix Required'"}]`
 - **Multi-Branch Merging (`join: always`)**:
   When a node merges an initial step and loop fix iterations (e.g. `code_review_agent` depending on both `commit_agent` and `fix_agent`), specify `join: always`.
+- **Loop Primitives (`loops` + `counts_loop` / `resets_loop`)**:
+  - Prefer declaring loops over unbounded `when` back edges: a loop gives the workflow a circuit breaker so a failing self-healing cycle wakes a human instead of spinning forever.
+  - Put `counts_loop` on the edge that ENTERS the retrying node (e.g. the verdict -> fixer edge), so `max_iterations: 5` means "at most 5 fix attempts".
+  - `on_exhausted` targets are orphans with NO static in-edges; they must not be listed in any loop's `nodes` and are excluded from initial roots. Human `on_exhausted` nodes are exempt from pairwise ordering validation. Offer explicit options like `["Retry (reset counter)", "Skip This Step", "Abort Workflow"]`; the Retry option's edge carries `resets_loop`, and a reply containing "abort" settles the run CANCELED.
+  - Nesting: an inner loop (e.g. `fix_loop`) declared with `parent: step_loop` gets its counter zeroed automatically every time the outer loop advances via its own `counts_loop` edge.
+  - Loop counters persist across `WAITING_HUMAN` suspensions and restarts, so circuit breakers survive resume.
+  - Validation rules to respect: unique non-empty loop ids; every loop needs at least one `counts_loop` edge whose source AND target belong to the loop's `nodes`; a `resets_loop` edge's target must belong to the loop's `nodes`; sibling loops without an ancestor relation must not share nodes; every declared loop must have a counting edge.
+- **Exit Code Whitelist (`allowed_exit_codes`)**:
+  Command nodes only. Use it when a non-zero exit is a normal routable outcome (e.g. `grep` exit 1 = "no match"): `allowed_exit_codes: [0, 1]`. The node result always carries the REAL exit code, so downstream `when` expressions route on the precise value; codes outside the whitelist settle the node FAILED.
 - **Runtime Variables**:
-  `${session_id}`, `${run_dir}`, `${tmp_dir}`, `${input}`, `${nodes.<node_id>.output}`, `${nodes.<node_id>.exit_code}`, `${nodes.<node_id>.status}`.
+  `${session_id}`, `${run_dir}`, `${tmp_dir}`, `${input}`, `${nodes.<node_id>.output}`, `${nodes.<node_id>.exit_code}`, `${nodes.<node_id>.status}`, `${loops.<loop_id>.iteration}` (current loop counter at node launch).
+- **When-Expression Fields**:
+  `nodes.<id>.status`, `.exit_code`, `.output`, `.error`, `.skip_reason`, and `.loop_iteration.<loop_id>` (the owning loop's iteration counter snapshotted when that node settled — useful for "only on the 2nd attempt" style gating).
 
 ### 4. View Agent
 To view the details of an existing agent:
