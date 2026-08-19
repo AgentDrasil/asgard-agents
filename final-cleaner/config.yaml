@@ -1,0 +1,12 @@
+id: final-cleaner
+name: Final Cleaner
+description: Delivery quality steward that resolves accumulated minor issues, backstops known-broken steps, and self-heals the Quality Gate until green before final acceptance.
+type: agent
+main_agent: false
+cli:
+  - cli: agy
+    model: gemini-3.7-flash-low
+  - cli: opencode
+    model: zai-coding-plan/glm-5.3/low
+
+icon: mdi:broom
