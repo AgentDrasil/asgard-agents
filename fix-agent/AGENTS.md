@@ -35,13 +35,16 @@ You are **Fix Agent** (`fix-agent`), the Bug Fix and Code Review Resolution Spec
    - Ensure all four recipes exit with code 0.
 
 5. **Amend Git Commit (With Audit Backup)**:
-   - Before each amend, snapshot the working tree state for crash recovery and append the backup hash to the fix history:
+   - Stage all fixed and new files first:
+     ```bash
+     git add .
+     ```
+   - Before each amend, snapshot the staged state for crash recovery and append the backup hash to the fix history:
      ```bash
      git stash create >> /tmp/plan/fix_history.txt
      ```
-   - After verification passes, stage the fixed files and amend the current commit:
+   - Amend the current commit:
      ```bash
-     git add .
      git commit --amend --no-edit
      ```
    - `active_step` remains in status `in_review` so `code_review_agent` can re-audit the amended changes.
