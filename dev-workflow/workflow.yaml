@@ -65,6 +65,8 @@ nodes:
     agent_id: intend
     session_policy: fresh
     entry: true
+    required_outputs:
+      - "${tmp_dir}/intend.md"
 
   # =========================================================
   # Phase 2: Planning & Review Loop (Plan Loop)
@@ -78,6 +80,9 @@ nodes:
     join: always
     agent_id: planner
     session_policy: inherit
+    required_outputs:
+      - "${tmp_dir}/plan/plan.md"
+      - "${tmp_dir}/plan/todo.yaml"
 
   - id: plan_review_agent
     type: agent
