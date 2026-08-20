@@ -12,7 +12,7 @@ cli:
   - cli: agy
     model: gemini-3.7-flash-low
   - cli: opencode
-    model: zai-coding-plan/glm-5.2
+    model: zai-coding-plan/glm-5.3/high
 
 run_dirs:
   - /home/user/src

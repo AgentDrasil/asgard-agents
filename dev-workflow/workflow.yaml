@@ -24,6 +24,16 @@ loops:
     max_iterations: 5
     on_exhausted: fix_fallback
 
+  # Final review loop: final-cleaner <-> final-reviewer
+  - id: final_review_loop
+    nodes:
+      - final_cleaner
+      - final_commit
+      - final_review_agent
+      - check_final_verdict
+    max_iterations: 3
+    on_exhausted: final_fallback
+
 nodes:
   # =========================================================
   # Phase 0: Justfile Quality Gate Pre-check
@@ -87,11 +97,19 @@ nodes:
   # =========================================================
   # Phase 3 & 4: Per-Step Dev & Self-Healing Review Loop
   # =========================================================
-  - id: coding_agent
-    type: agent
+  - id: record_base_commit
+    type: command
+    sandbox: false
+    command: "git rev-parse HEAD > ${tmp_dir}/plan/base_commit.txt"
+    allowed_exit_codes: [0]
     depends:
       - node: plan_approval
         when: "nodes.plan_approval.output == 'Approve'"
+
+  - id: coding_agent
+    type: agent
+    depends:
+      - node: record_base_commit
       - node: check_pending_steps
         when: "nodes.check_pending_steps.exit_code == 0"
         counts_loop: step_loop  # advancing to a new step: step_loop++ and reset fix_loop
@@ -119,10 +137,10 @@ nodes:
     type: command
     sandbox: false
     command: >
-      if grep -qx 'FIX_REQUIRED' ${tmp_dir}/review_verdict.txt; then exit 0;
+      if grep -qx 'FIX' ${tmp_dir}/review_verdict.txt; then exit 0;
       elif grep -qx 'PASS' ${tmp_dir}/review_verdict.txt; then exit 1;
       else exit 2; fi
-    allowed_exit_codes: [0, 1]  # 0: FIX_REQUIRED, 1: PASS, 2: verdict file missing/corrupt (fail-closed)
+    allowed_exit_codes: [0, 1]  # 0: FIX, 1: PASS, 2: verdict file missing/corrupt (fail-closed)
     depends:
       - node: code_review_agent
 
@@ -170,15 +188,21 @@ nodes:
         when: "nodes.fix_fallback.output == 'Skip This Step'"
 
   # =========================================================
-  # Phase 5: Minor Issues Cleanup & Final Acceptance
+  # Phase 5: Minor Issues Cleanup & Holistic Final Review Loop
   # =========================================================
   - id: final_cleaner
     type: agent
     depends:
       - node: check_pending_steps
         when: "nodes.check_pending_steps.exit_code == 1"
+      - node: check_final_verdict
+        when: "nodes.check_final_verdict.exit_code == 0"
+        counts_loop: final_review_loop
       - node: final_approval
         when: "nodes.final_approval.output == 'Request Changes'"
+      - node: final_fallback
+        when: "nodes.final_fallback.output == 'Retry (reset counter)'"
+        resets_loop: final_review_loop
     join: always
     agent_id: final-cleaner
     session_policy: fresh
@@ -190,10 +214,41 @@ nodes:
     agent_id: commit-agent
     session_policy: fresh
 
+  - id: final_review_agent
+    type: agent
+    depends:
+      - node: final_commit
+    agent_id: final-reviewer
+    session_policy: fresh
+
+  - id: check_final_verdict
+    type: command
+    sandbox: false
+    command: >
+      if grep -qx 'FIX' ${tmp_dir}/final_verdict.txt; then exit 0;
+      elif grep -qx 'PASS' ${tmp_dir}/final_verdict.txt; then exit 1;
+      else exit 2; fi
+    allowed_exit_codes: [0, 1]  # 0: FIX, 1: PASS, 2: verdict file missing/corrupt (fail-closed)
+    depends:
+      - node: final_review_agent
+
+  # =========================================================
+  # Final Review Loop Exhausted Fallback (Human)
+  # =========================================================
+  - id: final_fallback
+    type: human
+    prompt: "Final review auto-fix exhausted after 3 attempts. Please inspect Final Audit Report (${tmp_dir}/final_review.md)."
+    options: ["Retry (reset counter)", "Proceed to Approval", "Abort Workflow"]
+    output_file: "final_fallback_decision.txt"
+
   - id: final_approval
     type: human
     depends:
-      - node: final_commit
-    prompt: "All steps completed and minor issues cleaned. Please review Final Report (${tmp_dir}/final_review.md)."
+      - node: check_final_verdict
+        when: "nodes.check_final_verdict.exit_code == 1"
+      - node: final_fallback
+        when: "nodes.final_fallback.output == 'Proceed to Approval'"
+    join: always
+    prompt: "All steps completed, minor issues cleaned, and final audit passed. Please review Final Audit Report (${tmp_dir}/final_review.md)."
     options: ["Accept & Deliver", "Request Changes"]
     output_file: "final_decision.txt"

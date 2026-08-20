@@ -1,0 +1,10 @@
+id: final-reviewer
+name: Final Reviewer
+description: Senior code auditor and acceptance specialist responsible for holistic end-to-end review, intent alignment, and full-diff verification against Quality Gates.
+type: agent
+main_agent: false
+cli:
+  - cli: opencode
+    model: zai-coding-plan/glm-5.3/high
+
+icon: codicon:workspace-trusted
