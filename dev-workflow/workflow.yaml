@@ -36,13 +36,13 @@ loops:
 
 nodes:
   # =========================================================
-  # Phase 0: Justfile Quality Gate Pre-check
+  # Phase 0: Quality Gate & Base Commit Pre-check
   # =========================================================
   - id: check_justfile
     type: command
     sandbox: true
     working_dir: "${run_dir}"
-    command: "just --summary | grep -w build && just --summary | grep -w test && just --summary | grep -w fmt && just --summary | grep -w lint"
+    command: "mkdir -p ${tmp_dir}/plan && git rev-parse HEAD > ${tmp_dir}/plan/base_commit.txt && just --summary | grep -w build && just --summary | grep -w test && just --summary | grep -w fmt && just --summary | grep -w lint"
     allowed_exit_codes: [0, 1]  # 1: justfile incomplete (recoverable by init agent); >=2: tool missing
 
   - id: init_justfile_agent
@@ -102,19 +102,11 @@ nodes:
   # =========================================================
   # Phase 3 & 4: Per-Step Dev & Self-Healing Review Loop
   # =========================================================
-  - id: record_base_commit
-    type: command
-    sandbox: false
-    command: "git rev-parse HEAD > ${tmp_dir}/plan/base_commit.txt"
-    allowed_exit_codes: [0]
-    depends:
-      - node: plan_approval
-        when: "nodes.plan_approval.output == 'Approve'"
-
   - id: coding_agent
     type: agent
     depends:
-      - node: record_base_commit
+      - node: plan_approval
+        when: "nodes.plan_approval.output == 'Approve'"
       - node: check_pending_steps
         when: "nodes.check_pending_steps.exit_code == 0"
         counts_loop: step_loop  # advancing to a new step: step_loop++ and reset fix_loop
@@ -137,6 +129,8 @@ nodes:
     join: always
     agent_id: code-reviewer
     session_policy: fresh
+    required_outputs:
+      - "${tmp_dir}/review_verdict.txt"
 
   - id: check_review_verdict
     type: command
@@ -225,6 +219,8 @@ nodes:
       - node: final_commit
     agent_id: final-reviewer
     session_policy: fresh
+    required_outputs:
+      - "${tmp_dir}/final_verdict.txt"
 
   - id: check_final_verdict
     type: command
