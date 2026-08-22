@@ -8,4 +8,4 @@ cli:
     model: gemini-3.7-flash-low
 run_dirs:
   - /home/user/Note
-icon: fluent-color:notepad-edit-24
+icon: gcp:agent-assist
