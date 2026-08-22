@@ -1,0 +1,8 @@
+type: workflow
+id: notebook-workflow
+name: Notebook Automated Pipeline
+description: Automated Ingest and Absorb pipeline for personal Obsidian knowledge vault
+icon: fluent-color:notebook-24
+main_agent: true
+run_dirs:
+  - /home/user/Note

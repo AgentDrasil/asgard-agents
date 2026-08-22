@@ -1,0 +1,8 @@
+name: notebook-absorb-group
+no_human: true
+nodes:
+  - id: absorb_agent_node
+    type: agent
+    agent_id: notebook-absorb-agent
+    entry: true
+    session_policy: fresh

@@ -58,7 +58,7 @@ session_mode: resume
 
 #### Workflow for Creation:
 - You **must** ask the user for enough details (ID, Name, Description, and any custom configuration details) before creating the agent directory and files. Do not proceed until you have sufficient information.
-- You must use `agent-validate --agents-dir=~/asgard/agents <path of config.yaml>` to validate the config file.
+- You must use `agent-validate --agents-dir=~/asgard ~/asgard/agents/<path of config.yaml>` to validate the config file. Note: `--agents-dir` must point to the agents ROOT directory — the parent that contains the `agents/` subdirectory and `teams.yaml` (e.g. `~/asgard`), NOT the `agents/` directory itself.
 
 ### 3. Create a Workflow Agent
 An orchestrating workflow agent coordinates multiple DAG nodes, tools, and child agents.
@@ -81,6 +81,11 @@ The workflow directory (e.g. `agents/<workflow-id>/`) must contain:
 name: <workflow-name>
 tmp_dir: "tmp/${session_id}" # Optional, defaults to tmp/${session_id}
 max_node_executions: 500 # Optional global per-node execution cap (default 100)
+
+# Optional cron schedule (standard 5-field expression, robfig/cron syntax).
+# Note: a scheduled workflow requires no_human: true and CANNOT contain any `type: human` nodes (see Scheduled Workflows below).
+# schedule: "0 */2 * * *"
+# no_human: true
 
 # Optional declarative loop scopes: per-loop circuit breakers over flat DAG
 # back edges. Declare one entry per loop; nest via `parent`.
@@ -112,7 +117,7 @@ nodes:
     sandbox: true
     working_dir: "${run_dir}"
     depends:
-      - node: code_review_agent
+      - node: code_review_agent # upstream agent node (omitted from snippet for brevity)
     command: "grep -q 'VERDICT: APPROVE' ${tmp_dir}/code_review.md"
     output_file: "verdict.txt"
     allowed_exit_codes: [0, 1] # command nodes only: whitelisted non-zero exits settle SUCCEEDED; the real exit code is always preserved for `when` routing
@@ -134,6 +139,30 @@ nodes:
     type: llm
     system_prompt: "You are a concise summarizer."
     prompt: "Summarize: ${input}"
+
+  # Function Node: invokes a natively registered Go function
+  - id: scan_pending
+    type: function
+    function: "plugin_name.func_name" # name registered via workflow.RegisterFunction
+    timeout: "300s" # optional per-node timeout (Go duration string)
+
+  # Sub-Workflow Node (fan-out): one sub-run per line of items_file
+  - id: process_fanout
+    type: workflow
+    workflow: item-processing-subworkflow
+    fanout:
+      items_file: "${tmp_dir}/items.jsonl" # required: one item per line
+      max_parallel: 2 # optional concurrency cap (positive integer, default 3)
+      output_file: "${tmp_dir}/results.jsonl" # optional aggregated JSONL results
+    depends:
+      - node: scan_pending
+
+  # Sub-Workflow Node (single run): executes the sub-workflow once inline
+  - id: post_process
+    type: workflow
+    workflow: report-subworkflow
+    depends:
+      - node: process_fanout
 ```
 
 #### Agent Node Prompt Semantics
@@ -163,6 +192,53 @@ nodes:
 - **When-Expression Fields**:
   `nodes.<id>.status`, `.exit_code`, `.output`, `.error`, `.skip_reason`, and `.loop_iteration.<loop_id>` (the owning loop's iteration counter snapshotted when that node settled — useful for "only on the 2nd attempt" style gating).
 
+#### Scheduled Workflows (`schedule` + `no_human`)
+- **Syntax**: `schedule` accepts a standard 5-field cron expression (robfig/cron `ParseStandard` syntax), e.g. `schedule: "0 */2 * * *"` (every 2 hours) or `schedule: "*/30 * * * *"` (every 30 minutes).
+- **Hard constraint**: a workflow with `schedule` MUST declare `no_human: true` — scheduled runs are fully headless and a definition containing any `type: human` node is rejected at validation time.
+- **Validation**: the expression is parsed with robfig/cron and its next fire time must be non-zero; expressions that can never fire (e.g. `0 0 31 2 *` — Feb 31st) are rejected.
+- **Operational notes**:
+  - Cron scheduling lives in the orchestrator process memory (single-instance assumption; no distributed leader election). Restarting the service does NOT catch up missed cycles.
+  - Each cycle triggers a headless run on a synthetic session; overlapping cycles are skipped (rescheduled) while a previous run is still in flight.
+  - Schedule changes take effect after a config reload (`POST /api/manage/reload`).
+- **Example YAML structure**:
+  ```yaml
+  name: scheduled-sync-workflow
+  schedule: "0 */2 * * *"
+  no_human: true
+
+  nodes:
+    - id: sync_job
+      type: function
+      function: "plugin_name.func_name"
+  ```
+
+#### Fan-Out Sub-Workflow Runs (`fanout`)
+- **Applicable nodes**: `fanout` may only be configured on `type: workflow` nodes. Plain `output_file` is NOT allowed on workflow nodes — use `fanout.output_file` instead.
+- **Fields**:
+  - `items_file` (required): path to the items list file, one item per non-empty line (supports `${tmp_dir}` interpolation; relative paths resolve against the session `tmp_dir`).
+  - `max_parallel` (optional): maximum number of concurrent sub-workflow workers (positive integer; default 3). Use `max_parallel: 1` to force serial execution when sub-runs contend on shared files.
+  - `output_file` (optional): aggregation output path. Results of all sub-runs are saved there in JSONL format, sorted by line (item) index, each line carrying `item_index` (1-based), `item`, `status` (uppercase `SUCCEEDED`/`FAILED`), and `output`.
+- **Runtime semantics**:
+  - The engine reads `items_file` and spawns one inline sub-workflow run per line, passing that line as the sub-run's `${input}`.
+  - When `items_file` is missing or empty, the node settles SUCCEEDED with empty output (and an empty `output_file` if configured) — design downstream nodes accordingly.
+  - If ANY item's sub-run fails, the fan-out node settles FAILED with the failure count in its error; per-item details remain available in `output_file` / the node output.
+  - Sub-workflow recursion is depth-limited (hard-coded default max depth: 4) and cycle-checked (a workflow cannot appear twice in one call chain).
+- **Downstream consumption pattern**: a node that records fan-out results (e.g. marks processed items in a state file) should declare `on_fail: run` so it still commits the SUCCEEDED items after a partial failure — enabling idempotent partial-success commits and resume-from-breakpoint retries.
+
+#### Native Function Nodes (`type: function`)
+- **Node YAML structure**:
+  ```yaml
+  - id: scan_data
+    type: function
+    function: "plugin_name.func_name"
+  ```
+- **Contract**:
+  - The named function must be implemented in Go and satisfy `workflow.WorkflowFunction`: `func(ctx context.Context, nctx *workflow.NodeContext) (string, error)`.
+  - It must be registered before execution via `workflow.RegisterFunction(name, fn)` (process-wide default registry, typically done in a plugin package `init()`), or injected through the App-level `FunctionRegistry`. An unregistered name settles the node FAILED.
+  - Execution is wrapped with panic isolation (a panicking function cannot crash the orchestrator) and honors the optional per-node `timeout` (Go duration string, e.g. `"300s"`).
+  - Inside the function, `nctx.TmpDir`, `nctx.RunDir`, and `nctx.Input` expose the runtime context; the returned string becomes the node output.
+- **When to use**: prefer `type: function` over `type: command` for deterministic, side-effect-safe glue logic (scanning directories, updating YAML state, parsing artifacts) — no sandbox overhead, typed errors, and unit-testable.
+
 ### 4. View Agent
 To view the details of an existing agent:
 - Locate the directory matching the given agent name.
@@ -172,7 +248,7 @@ To view the details of an existing agent:
 When requested to modify an agent:
 - The user must provide the agent's name.
 - Follow the user's specific instructions to update its `AGENTS.md`, `config.yaml`, `workflow.yaml`, or other agent-specific files.
-- Run `agent-validate --agents-dir=~/asgard/agents <path of config.yaml>` to verify all changes.
+- Run `agent-validate --agents-dir=~/asgard ~/asgard/agents/<path of config.yaml>` to verify all changes (`--agents-dir` is the agents root directory containing the `agents/` subdirectory and `teams.yaml`, e.g. `~/asgard`).
 
 ---
 

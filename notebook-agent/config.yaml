@@ -1,0 +1,11 @@
+id: notebook-agent
+name: Notebook Assistant
+description: Assistant for Obsidian knowledge vault - handles quick notes to Inbox.md, todo task scanning, and 03_Wiki/ querying and Q&A.
+type: agent
+main_agent: true
+cli:
+  - cli: agy
+    model: gemini-3.7-flash-low
+run_dirs:
+  - /home/user/Note
+icon: fluent-color:notepad-edit-24

@@ -1,0 +1,6 @@
+type: workflow
+id: notebook-ingest-group
+name: Notebook Ingest Group Sub-workflow
+description: Inline sub-workflow that processes a single raw data file into 01_Raw/Entities/
+icon: fluent-color:arrow-import-24
+main_agent: false

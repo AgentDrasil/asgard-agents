@@ -1,0 +1,49 @@
+name: notebook-workflow
+schedule: "0 2 * * *"
+no_human: true
+nodes:
+  # Phase 1: Ingest Pipeline
+  - id: scan_ingest
+    type: function
+    function: "notebook.scan_ingest_pending"
+
+  - id: ingest_fanout
+    type: workflow
+    workflow: notebook-ingest-group
+    fanout:
+      items_file: "${tmp_dir}/ingest_items.jsonl"
+      max_parallel: 1
+      output_file: "${tmp_dir}/ingest_results.jsonl"
+    depends:
+      - node: scan_ingest
+
+  - id: record_ingest
+    type: function
+    function: "notebook.record_ingest_success"
+    on_fail: run
+    depends:
+      - node: ingest_fanout
+
+  # Phase 2: Absorb Pipeline
+  - id: scan_absorb
+    type: function
+    function: "notebook.scan_absorb_pending"
+    depends:
+      - node: record_ingest
+
+  - id: absorb_fanout
+    type: workflow
+    workflow: notebook-absorb-group
+    fanout:
+      items_file: "${tmp_dir}/absorb_items.jsonl"
+      max_parallel: 1
+      output_file: "${tmp_dir}/absorb_results.jsonl"
+    depends:
+      - node: scan_absorb
+
+  - id: record_absorb
+    type: function
+    function: "notebook.record_absorb_success"
+    on_fail: run
+    depends:
+      - node: absorb_fanout

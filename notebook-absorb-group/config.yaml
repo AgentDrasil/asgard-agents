@@ -1,0 +1,6 @@
+type: workflow
+id: notebook-absorb-group
+name: Notebook Absorb Group Sub-workflow
+description: Inline sub-workflow that synthesizes a group of raw markdown files into 03_Wiki/
+icon: fluent-color:brain-circuit-24
+main_agent: false
