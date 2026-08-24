@@ -11,8 +11,16 @@ main_agent: true
 cli:
   - cli: agy
     model: gemini-3.7-flash-low
+  - cli: agy
+    model: gemini-3.7-flash-medium
+  - cli: agy
+    model: gemini-3.7-flash-high
+  - cli: opencode
+    model: zai-coding-plan/glm-5.3/low
   - cli: opencode
     model: zai-coding-plan/glm-5.3/high
+  - cli: opencode
+    model: opencode/x-preview-f-free
 
 run_dirs:
   - /home/user/src
