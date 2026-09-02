@@ -41,7 +41,7 @@ description: <Description of the agent's responsibilities>
 # CLI targets that can be used (ordered by preference to support quota-based fallbacks)
 cli:
 - cli: agy
-  model: gemini-3.7-flash-low
+  model: gemini-3.8-flash-low
 
 # Directories in which agents are allowed to start. These are mounted as readwrite.
 run_dirs:
