@@ -11,9 +11,9 @@ nodes:
     type: workflow
     workflow: notebook-ingest-group
     fanout:
-      items_file: "${tmp_dir}/ingest_items.jsonl"
+      items_file: "${session_dir}/ingest_items.jsonl"
       max_parallel: 1
-      output_file: "${tmp_dir}/ingest_results.jsonl"
+      output_file: "${session_dir}/ingest_results.jsonl"
     depends:
       - node: scan_ingest
 
@@ -35,9 +35,9 @@ nodes:
     type: workflow
     workflow: notebook-absorb-group
     fanout:
-      items_file: "${tmp_dir}/absorb_items.jsonl"
+      items_file: "${session_dir}/absorb_items.jsonl"
       max_parallel: 1
-      output_file: "${tmp_dir}/absorb_results.jsonl"
+      output_file: "${session_dir}/absorb_results.jsonl"
     depends:
       - node: scan_absorb
 

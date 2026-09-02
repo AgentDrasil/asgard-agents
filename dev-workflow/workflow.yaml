@@ -42,7 +42,7 @@ nodes:
     type: command
     sandbox: true
     working_dir: "${run_dir}"
-    command: "mkdir -p ${tmp_dir}/plan && git rev-parse HEAD > ${tmp_dir}/plan/base_commit.txt && just --summary | grep -w build && just --summary | grep -w test && just --summary | grep -w fmt && just --summary | grep -w lint"
+    command: "mkdir -p ${session_dir}/plan && git rev-parse HEAD > ${session_dir}/plan/base_commit.txt && just --summary | grep -w build && just --summary | grep -w test && just --summary | grep -w fmt && just --summary | grep -w lint"
     allowed_exit_codes: [0, 1]  # 1: justfile incomplete (recoverable by init agent); >=2: tool missing
 
   - id: init_justfile_agent
@@ -66,7 +66,7 @@ nodes:
     session_policy: fresh
     entry: true
     required_outputs:
-      - "${tmp_dir}/intend.md"
+      - "${session_dir}/intend.md"
 
   # =========================================================
   # Phase 2: Planning & Review Loop (Plan Loop)
@@ -81,8 +81,8 @@ nodes:
     agent_id: planner
     session_policy: inherit
     required_outputs:
-      - "${tmp_dir}/plan/plan.md"
-      - "${tmp_dir}/plan/todo.yaml"
+      - "${session_dir}/plan/plan.md"
+      - "${session_dir}/plan/todo.yaml"
 
   - id: plan_review_agent
     type: agent
@@ -95,7 +95,7 @@ nodes:
     type: human
     depends:
       - node: plan_review_agent
-    prompt: "Please review Plan (${tmp_dir}/plan/plan.md) and Review Feedback (${tmp_dir}/plan/review_feedback.md). Choose Approve or Request Changes."
+    prompt: "Please review Plan (${session_dir}/plan/plan.md) and Review Feedback (${session_dir}/plan/review_feedback.md). Choose Approve or Request Changes."
     options: ["Approve", "Request Changes"]
     output_file: "plan_user_decision.txt"
 
@@ -130,14 +130,14 @@ nodes:
     agent_id: code-reviewer
     session_policy: fresh
     required_outputs:
-      - "${tmp_dir}/review_verdict.txt"
+      - "${session_dir}/review_verdict.txt"
 
   - id: check_review_verdict
     type: command
     sandbox: false
     command: >
-      if grep -qx 'FIX' ${tmp_dir}/review_verdict.txt; then exit 0;
-      elif grep -qx 'PASS' ${tmp_dir}/review_verdict.txt; then exit 1;
+      if grep -qx 'FIX' ${session_dir}/review_verdict.txt; then exit 0;
+      elif grep -qx 'PASS' ${session_dir}/review_verdict.txt; then exit 1;
       else exit 2; fi
     allowed_exit_codes: [0, 1]  # 0: FIX, 1: PASS, 2: verdict file missing/corrupt (fail-closed)
     depends:
@@ -159,7 +159,7 @@ nodes:
   - id: check_pending_steps
     type: command
     sandbox: false
-    command: "grep -q 'status: pending' ${tmp_dir}/plan/todo.yaml"
+    command: "grep -q 'status: pending' ${session_dir}/plan/todo.yaml"
     allowed_exit_codes: [0, 1]  # 0: pending steps remain, 1: all steps done
     depends:
       - node: check_review_verdict
@@ -173,14 +173,14 @@ nodes:
   # =========================================================
   - id: fix_fallback
     type: human
-    prompt: "Auto-fix exhausted after 5 attempts for the current step. Please review Code Review Report (${tmp_dir}/code_review.md) and Fix Attempts Log (${tmp_dir}/plan/fix_attempts.md)."
+    prompt: "Auto-fix exhausted after 5 attempts for the current step. Please review Code Review Report (${session_dir}/code_review.md) and Fix Attempts Log (${session_dir}/plan/fix_attempts.md)."
     options: ["Retry (reset counter)", "Skip This Step", "Abort Workflow"]
     output_file: "fix_fallback_decision.txt"
 
   - id: mark_step_skipped
     type: command
     sandbox: false
-    command: "sed -i '0,/status: in_review/s//status: skipped (known-broken)/' ${tmp_dir}/plan/todo.yaml && rm -f ${tmp_dir}/review_verdict.txt"
+    command: "sed -i '0,/status: in_review/s//status: skipped (known-broken)/' ${session_dir}/plan/todo.yaml && rm -f ${session_dir}/review_verdict.txt"
     allowed_exit_codes: [0]
     depends:
       - node: fix_fallback
@@ -220,14 +220,14 @@ nodes:
     agent_id: final-reviewer
     session_policy: fresh
     required_outputs:
-      - "${tmp_dir}/final_verdict.txt"
+      - "${session_dir}/final_verdict.txt"
 
   - id: check_final_verdict
     type: command
     sandbox: false
     command: >
-      if grep -qx 'FIX' ${tmp_dir}/final_verdict.txt; then exit 0;
-      elif grep -qx 'PASS' ${tmp_dir}/final_verdict.txt; then exit 1;
+      if grep -qx 'FIX' ${session_dir}/final_verdict.txt; then exit 0;
+      elif grep -qx 'PASS' ${session_dir}/final_verdict.txt; then exit 1;
       else exit 2; fi
     allowed_exit_codes: [0, 1]  # 0: FIX, 1: PASS, 2: verdict file missing/corrupt (fail-closed)
     depends:
@@ -238,7 +238,7 @@ nodes:
   # =========================================================
   - id: final_fallback
     type: human
-    prompt: "Final review auto-fix exhausted after 3 attempts. Please inspect Final Audit Report (${tmp_dir}/final_review.md)."
+    prompt: "Final review auto-fix exhausted after 3 attempts. Please inspect Final Audit Report (${session_dir}/final_review.md)."
     options: ["Retry (reset counter)", "Proceed to Approval", "Abort Workflow"]
     output_file: "final_fallback_decision.txt"
 
@@ -250,6 +250,6 @@ nodes:
       - node: final_fallback
         when: "nodes.final_fallback.output == 'Proceed to Approval'"
     join: always
-    prompt: "All steps completed, minor issues cleaned, and final audit passed. Please review Final Audit Report (${tmp_dir}/final_review.md)."
+    prompt: "All steps completed, minor issues cleaned, and final audit passed. Please review Final Audit Report (${session_dir}/final_review.md)."
     options: ["Accept & Deliver", "Request Changes"]
     output_file: "final_decision.txt"

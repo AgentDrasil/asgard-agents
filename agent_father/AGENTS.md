@@ -79,7 +79,6 @@ The workflow directory (e.g. `agents/<workflow-id>/`) must contain:
 #### Workflow Specification Reference (`workflow.yaml`)
 ```yaml
 name: <workflow-name>
-tmp_dir: "tmp/${session_id}" # Optional, defaults to tmp/${session_id}
 max_node_executions: 500 # Optional global per-node execution cap (default 100)
 
 # Optional cron schedule (standard 5-field expression, robfig/cron syntax).
@@ -118,7 +117,7 @@ nodes:
     working_dir: "${run_dir}"
     depends:
       - node: code_review_agent # upstream agent node (omitted from snippet for brevity)
-    command: "grep -q 'VERDICT: APPROVE' ${tmp_dir}/code_review.md"
+    command: "grep -q 'VERDICT: APPROVE' ${session_dir}/code_review.md"
     output_file: "verdict.txt"
     allowed_exit_codes: [0, 1] # command nodes only: whitelisted non-zero exits settle SUCCEEDED; the real exit code is always preserved for `when` routing
 
@@ -151,9 +150,9 @@ nodes:
     type: workflow
     workflow: item-processing-subworkflow
     fanout:
-      items_file: "${tmp_dir}/items.jsonl" # required: one item per line
+      items_file: "${session_dir}/items.jsonl" # required: one item per line
       max_parallel: 2 # optional concurrency cap (positive integer, default 3)
-      output_file: "${tmp_dir}/results.jsonl" # optional aggregated JSONL results
+      output_file: "${session_dir}/results.jsonl" # optional aggregated JSONL results
     depends:
       - node: scan_pending
 
@@ -170,7 +169,7 @@ nodes:
 - Each agent must be single-responsibility: one agent per node role, never reuse one agent across multiple nodes.
 - The node marked `entry: true` receives the raw user input as its prompt. Every workflow with agent nodes must mark at least one entry node (multiple are allowed for parallel entry points). All other agent nodes are kicked off with a directive; their inputs are files produced by earlier nodes (referenced from their `AGENTS.md`), not the user input.
 - Nodes with `session_policy: inherit` re-entering after a loop (e.g. after a `Request Changes` decision) receive a follow-up directive that reminds them to re-read referenced files.
-- In child agents' `AGENTS.md`, write `/tmp/...` for scratch file paths (the session tmp directory is bind-mounted at `/tmp` inside the sandbox).
+- In child agents' `AGENTS.md`, write `/session/...` for scratch file paths (the session tmp directory is bind-mounted at `/session` inside the sandbox).
 
 #### Workflow Control Flow & Loop Mechanics:
 - **Dependencies (`depends:`)**:
@@ -188,7 +187,7 @@ nodes:
 - **Exit Code Whitelist (`allowed_exit_codes`)**:
   Command nodes only. Use it when a non-zero exit is a normal routable outcome (e.g. `grep` exit 1 = "no match"): `allowed_exit_codes: [0, 1]`. The node result always carries the REAL exit code, so downstream `when` expressions route on the precise value; codes outside the whitelist settle the node FAILED.
 - **Runtime Variables**:
-  `${session_id}`, `${run_dir}`, `${tmp_dir}`, `${input}`, `${nodes.<node_id>.output}`, `${nodes.<node_id>.exit_code}`, `${nodes.<node_id>.status}`, `${loops.<loop_id>.iteration}` (current loop counter at node launch).
+  `${session_id}`, `${run_dir}`, `${session_dir}`, `${input}`, `${nodes.<node_id>.output}`, `${nodes.<node_id>.exit_code}`, `${nodes.<node_id>.status}`, `${loops.<loop_id>.iteration}` (current loop counter at node launch).
 - **When-Expression Fields**:
   `nodes.<id>.status`, `.exit_code`, `.output`, `.error`, `.skip_reason`, and `.loop_iteration.<loop_id>` (the owning loop's iteration counter snapshotted when that node settled — useful for "only on the 2nd attempt" style gating).
 
@@ -215,7 +214,7 @@ nodes:
 #### Fan-Out Sub-Workflow Runs (`fanout`)
 - **Applicable nodes**: `fanout` may only be configured on `type: workflow` nodes. Plain `output_file` is NOT allowed on workflow nodes — use `fanout.output_file` instead.
 - **Fields**:
-  - `items_file` (required): path to the items list file, one item per non-empty line (supports `${tmp_dir}` interpolation; relative paths resolve against the session `tmp_dir`).
+  - `items_file` (required): path to the items list file, one item per non-empty line (supports `${session_dir}` interpolation; relative paths resolve against the session `session_dir`).
   - `max_parallel` (optional): maximum number of concurrent sub-workflow workers (positive integer; default 3). Use `max_parallel: 1` to force serial execution when sub-runs contend on shared files.
   - `output_file` (optional): aggregation output path. Results of all sub-runs are saved there in JSONL format, sorted by line (item) index, each line carrying `item_index` (1-based), `item`, `status` (uppercase `SUCCEEDED`/`FAILED`), and `output`.
 - **Runtime semantics**:
