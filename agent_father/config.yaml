@@ -7,6 +7,8 @@ main_agent: true
 cli:
 - cli: agy
   model: gemini-3.7-flash-low
+- cli: opencode
+  model: zai-coding-plan/glm-5.3-flash/high
 run_dirs:
 - /home/user/asgard/agents
 mount_dirs:

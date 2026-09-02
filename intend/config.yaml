@@ -6,5 +6,6 @@ main_agent: false
 cli:
   - cli: agy
     model: gemini-3.7-flash-high
-
+  - cli: opencode
+    model: zai-coding-plan/glm-5.3/low
 icon: material-symbols-light:lightbulb-outline
