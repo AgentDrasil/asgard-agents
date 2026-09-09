@@ -94,6 +94,17 @@ loops:
     max_iterations: 5           # iteration quota (> 0 when on_exhausted is set)
     on_exhausted: fix_fallback  # node activated when the quota is exhausted (must not belong to any loop)
 
+# Optional heterogeneous model pairing groups (see Model Pairing below).
+# model_pairings:
+#   - id: code
+#     actors: [coding_agent, fix_agent]
+#     reviewer: code_review_agent
+#     pairs:
+#       - actor: {cli: agy, model: gemini-3.8-flash-low}
+#         reviewer:
+#           - {cli: opencode, model: zai-coding-plan/glm-5.3/high}
+#           - {cli: openrouter, model: anthropic/claude-sonnet-5} # PPR tail (unlimited quota)
+
 nodes:
   # Agent Node: invokes a CLI child agent
   - id: coding_agent
@@ -163,6 +174,34 @@ nodes:
     depends:
       - node: process_fanout
 ```
+
+#### Model Pairing (`model_pairings`)
+Keeps action/review model pairs heterogeneous: the reviewer's model is determined by the target its group's actor ACTUALLY used (after quota fallback), per iteration.
+
+```yaml
+model_pairings:
+  - id: code                      # unique group id
+    actors: [coding_agent, fix_agent] # action node ids whose output is reviewed
+    reviewer: code_review_agent   # review node id (must be type: agent; reviews only one group)
+    pairs:                        # maps every possible actor target to an ordered reviewer list
+      - actor: {cli: agy, model: gemini-3.8-flash-low}
+        reviewer:
+          - {cli: opencode, model: zai-coding-plan/glm-5.3/high}
+          - {cli: openrouter, model: anthropic/claude-sonnet-5}
+      - actor: {cli: opencode, model: zai-coding-plan/glm-5.3-flash/high}
+        reviewer:
+          - {cli: agy, model: gemini-3.1-pro-low}
+          - {cli: openrouter, model: anthropic/claude-sonnet-5}
+```
+
+Semantics and requirements:
+- **Actor side unchanged**: action nodes keep using their own agent `cli:` list with quota fallback. Pairing governs ONLY the reviewer's selection; inside the workflow the paired reviewer ignores its own `cli:` list (it still applies in single-agent chats).
+- **Resolution is per-iteration**: when the reviewer node executes, the engine looks up the actually-used target of the group's most recently completed actor (e.g. `fix_agent` in fix-loop rounds, `coding_agent` on the first pass) and takes the matching `pairs` entry's reviewer list, in order, first target with more than 10% quota remaining.
+- **Coverage is mandatory**: every target in each actor's `cli:` list must appear as a `pairs` actor key (validation fails at load time otherwise). Duplicate actor keys are rejected.
+- **Explicit `model:` takes over**: a node-level `model:` override on the reviewer bypasses the pairing table entirely (no fallback, no pairing lookup).
+- **PPR tail recommended**: end each reviewer list with a pay-per-request target (quota layer treats it as unlimited) so the fallback always terminates.
+- **Unsatisfiable pairing is explicit**: if all reviewer candidates are exhausted, the run suspends (`WAITING_HUMAN`) offering wait / force a target / cancel — it never silently reviews with a same-source model. A missing pairing key fails the node closed (`pairing key not found: <cli>/<model>`).
+- Heterogeneity itself is the user's responsibility: never list the same `(cli, model)` as the actor key inside its own reviewer list (validation warns on self-review).
 
 #### Agent Node Prompt Semantics
 - Agent nodes take NO `prompt` field (validation rejects it). Each child agent's `AGENTS.md` holds all of its instructions.

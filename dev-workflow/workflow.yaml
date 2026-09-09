@@ -253,3 +253,62 @@ nodes:
     prompt: "All steps completed, minor issues cleaned, and final audit passed. Please review Final Audit Report (${session_dir}/final_review.md)."
     options: ["Accept & Deliver", "Request Changes"]
     output_file: "final_decision.txt"
+
+# =========================================================
+# Model Pairing: guarantee heterogeneous action/review models.
+# The reviewer's candidate list is resolved per iteration from the target
+# its group's latest completed actor actually used (quota fallback included).
+# Pairing keys must cover every cli-list target of each actor agent.
+# TODO: append a pay-per-request (PPR) target as the tail of each reviewer
+# list once a concrete unlimited-quota CLI/model is provided.
+# =========================================================
+model_pairings:
+  - id: plan
+    actors: [plan_agent]
+    reviewer: plan_review_agent
+    pairs:
+      - actor: {cli: agy, model: gemini-3.8-flash-high}
+        reviewer:
+          - {cli: opencode, model: zai-coding-plan/glm-5.3/high}
+          - {cli: simplest, model: deepseek/deepseek-v4-pro}
+      - actor: {cli: opencode, model: zai-coding-plan/glm-5.3/high}
+        reviewer:
+          - {cli: agy, model: claude-opus-4-6-thinking}
+          - {cli: simplest, model: deepseek/deepseek-v4-pro}
+      - actor: {cli: opencode, model: opencode/muse-spark-1.3-contributor-free}
+        reviewer:
+          - {cli: agy, model: claude-opus-4-6-thinking}
+          - {cli: simplest, model: deepseek/deepseek-v4-pro}
+  - id: code
+    actors: [coding_agent, fix_agent]
+    reviewer: code_review_agent
+    pairs:
+      - actor: {cli: agy, model: gemini-3.8-flash-low}
+        reviewer:
+          - {cli: opencode, model: zai-coding-plan/glm-5.3/high}
+          - {cli: simplest, model: deepseek/deepseek-v4-pro}
+      - actor: {cli: opencode, model: zai-coding-plan/glm-5.3-flash/high}
+        reviewer:
+          - {cli: agy, model: claude-opus-4-6-thinking}
+          - {cli: simplest, model: deepseek/deepseek-v4-pro}
+      - actor: {cli: opencode, model: opencode/muse-spark-1.3-contributor-free}
+        reviewer:
+          - {cli: agy, model: claude-opus-4-6-thinking}
+          - {cli: simplest, model: deepseek/deepseek-v4-pro}
+
+  - id: final
+    actors: [final_cleaner]
+    reviewer: final_review_agent
+    pairs:
+      - actor: {cli: agy, model: gemini-3.8-flash-low}
+        reviewer:
+          - {cli: opencode, model: zai-coding-plan/glm-5.3/high}
+          - {cli: simplest, model: deepseek/deepseek-v4-pro}
+      - actor: {cli: opencode, model: zai-coding-plan/glm-5.3/low}
+        reviewer:
+          - {cli: agy, model: claude-opus-4-6-thinking}
+          - {cli: simplest, model: deepseek/deepseek-v4-pro}
+      - actor: {cli: opencode, model: opencode/muse-spark-1.3-contributor-free}
+        reviewer:
+          - {cli: agy, model: claude-opus-4-6-thinking}
+          - {cli: simplest, model: deepseek/deepseek-v4-pro}
