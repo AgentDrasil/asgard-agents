@@ -22,9 +22,9 @@ cli:
   - cli: opencode
     model: zai-coding-plan/glm-5.3-flash/high
   - cli: simplest
-    model: deepseek/deepseek-v4-flash
+    model: deepseek/dsv4-flash
   - cli: simplest
-    model: deepseek/deepseek-v4-pro
+    model: deepseek/dsv4-pro
   - cli: simplest
     model: google/gemini-3.8-flash
 
