@@ -90,6 +90,8 @@ nodes:
       - node: plan_agent
     agent_id: plan-reviewer
     session_policy: fresh
+    required_outputs:
+      - "${session_dir}/plan/review_feedback.md"
 
   - id: plan_approval
     type: human
@@ -267,7 +269,7 @@ model_pairings:
     actors: [plan_agent]
     reviewer: plan_review_agent
     pairs:
-      - actor: {cli: agy, model: gemini-3.8-flash-high}
+      - actor: {cli: agy, model: gemini-3.8-flash-medium}
         reviewer:
           - {cli: simplest, model: zai-coding-plan/glm-5.3/high}
           - {cli: simplest, model: deepseek/dsv4-pro}

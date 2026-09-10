@@ -5,7 +5,7 @@ type: agent
 main_agent: false
 cli:
   - cli: agy
-    model: gemini-3.8-flash-high
+    model: gemini-3.8-flash-medium
   - cli: simplest
     model: zai-coding-plan/glm-5.3/high
 icon: material-symbols-light:design-services-outline
