@@ -186,9 +186,9 @@ model_pairings:
     pairs:                        # maps every possible actor target to an ordered reviewer list
       - actor: {cli: agy, model: gemini-3.8-flash-low}
         reviewer:
-          - {cli: opencode, model: zai-coding-plan/glm-5.3/high}
+          - {cli: simplest, model: zai-coding-plan/glm-5.3/high}
           - {cli: openrouter, model: anthropic/claude-sonnet-5}
-      - actor: {cli: opencode, model: zai-coding-plan/glm-5.3-flash/high}
+      - actor: {cli: simplest, model: zai-coding-plan/glm-5.3-flash/high}
         reviewer:
           - {cli: agy, model: gemini-3.1-pro-low}
           - {cli: openrouter, model: anthropic/claude-sonnet-5}

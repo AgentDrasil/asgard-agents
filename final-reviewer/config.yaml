@@ -4,7 +4,7 @@ description: Senior code auditor and acceptance specialist responsible for holis
 type: agent
 main_agent: false
 cli:
-  - cli: opencode
+  - cli: simplest
     model: zai-coding-plan/glm-5.3/high
   - cli: agy
     model: gemini-3.1-pro-low

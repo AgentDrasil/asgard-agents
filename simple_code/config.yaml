@@ -15,11 +15,11 @@ cli:
     model: gemini-3.8-flash-medium
   - cli: agy
     model: gemini-3.8-flash-high
-  - cli: opencode
+  - cli: simplest
     model: zai-coding-plan/glm-5.3/low
-  - cli: opencode
+  - cli: simplest
     model: zai-coding-plan/glm-5.3/high
-  - cli: opencode
+  - cli: simplest
     model: zai-coding-plan/glm-5.3-flash/high
   - cli: simplest
     model: deepseek/dsv4-flash
