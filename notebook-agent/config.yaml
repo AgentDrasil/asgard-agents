@@ -7,5 +7,5 @@ cli:
   - cli: agy
     model: gemini-3.8-flash-low
 run_dirs:
-  - /home/user/Note
+  - /Note
 icon: gcp:agent-assist

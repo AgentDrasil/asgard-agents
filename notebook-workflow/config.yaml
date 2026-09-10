@@ -5,4 +5,4 @@ description: Automated Ingest and Absorb pipeline for personal Obsidian knowledg
 icon: fluent-color:notebook-24
 main_agent: true
 run_dirs:
-  - /home/user/Note
+  - /Note
